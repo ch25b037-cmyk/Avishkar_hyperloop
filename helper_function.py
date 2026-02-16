@@ -68,6 +68,7 @@ def log_data(data):
     log["timestamp"] = timestamp.strftime("%H:%M:%S")
     header = not os.path.exists(filename)
     log.to_csv(filename, index=True, header=header, mode='a')
+    st.toast("Data logged to CSV")   
 
 def update_simulation():
     df = st.session_state.pod_data
@@ -94,7 +95,7 @@ def update_simulation():
         # -------------------------------
         elif current_status == "Docked":
             df.at[index, "Speed (km/h)"] = 0  # STOP!
-            new_battery = min(100, current_battery + 5) 
+            new_battery = min(100, current_battery + 15) 
             df.at[index,"Lev. Gap (mm)"] = 0
             df.at[index, "Battery"] = new_battery
             if new_battery == 100:
@@ -104,10 +105,10 @@ def update_simulation():
         # LOGIC 3: OPERATIONAL
         # -------------------------------
         else: # Status is Operational
-            df.at[index, "Pressure (kPa)"] = max(90, min(110, current_pressure + random.randint(-2, 2)))
-            df.at[index, "Temperature (°C)"] = max(10, min(35, current_temperature + random.randint(-1, 1)))
-            df.at[index, "Battery"] = max(0, current_battery - random.randint(0, 2))
-            df.at[index, "Wear Level"] = min(100, current_wear + random.randint(0, 2))
+            df.at[index, "Pressure (kPa)"] = current_pressure + random.randint(-2, 2)
+            df.at[index, "Temperature (°C)"] = current_temperature + random.randint(-1, 1)
+            df.at[index, "Battery"] = max(0, current_battery - random.randint(0, 3))
+            df.at[index, "Wear Level"] = min(100, current_wear + random.randint(0, 3))
             df.at[index,"Lev. Gap (mm)"] = random.randint(9, 18)
             current_speed = st.session_state.speed_limit
             new_speed = max(0, min(1200, current_speed + random.randint(-50, 50)))
@@ -161,13 +162,6 @@ def get_energy_tips():
     response = requests.get(url)
     data = response.json()
     return data['body']     
-
-def get_random_jokes():
-    url = "https://official-joke-api.appspot.com/random_joke"
-    response = requests.get(url)
-    data = response.json()
-    return f"{data['setup']} - {data['punchline']}"
-
 def refresh_and_catch_up():
     now = datetime.now()
     time_diff = (now - st.session_state.last_tick_time).total_seconds()

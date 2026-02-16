@@ -6,7 +6,7 @@ from datetime import datetime
 import time
 import paho.mqtt.client as mqtt
 from paho.mqtt.enums import CallbackAPIVersion
-from helper_function import check_login, generate_pod_data, get_random_jokes, load_css, get_weather_data, get_energy_tips, refresh_and_catch_up, update_simulation
+from helper_function import check_login, generate_pod_data, load_css, get_weather_data, get_energy_tips, refresh_and_catch_up
 
 
 #----------------------
@@ -17,14 +17,14 @@ broker = "test.mosquitto.org"
 if 'mqtt_client' not in st.session_state:
     if "mqtt_connected" not in st.session_state:
         st.session_state.mqtt_connected = False
-    def on_connect(client, userdata, flags, rc, properties):
+    def on_connect(client, userdata, flags, rc,properties):
         if rc == 0:
             print("Connected to broker")
-            st.session_state.mqtt_connected = True
         else:
             print("Connection failed with code", rc)
     client = mqtt.Client(CallbackAPIVersion.VERSION2)
     client.on_connect = on_connect
+    st.session_state.mqtt_connected = True
     client.connect(broker, port)
     client.loop_start()        
     st.session_state.mqtt_client = client
@@ -64,7 +64,7 @@ st.sidebar.success(f"Logged in as: **{st.session_state.role}**")
 # --- LOG MANAGEMENT SECTION ---
 #----------------------------------
 st.sidebar.subheader("Data Log")
-st.session_state.logging_enabled = st.sidebar.checkbox("Save data to CSV file", value=True)
+st.session_state.logging_enabled = st.sidebar.checkbox("Save data to CSV file")
 
 
 file = "hyperloop_logs.csv"
@@ -116,7 +116,7 @@ df.loc[df["Speed (km/h)"] > current_limit, "Speed (km/h)"] = current_limit
 #      DASHBOARD UI
 # ------------------------------
 
-st.title("Avishkar Hyperloop Control Dashboard")
+st.title("Avishkar Hyperloop Control Dashboard - 2035")
 st.markdown(f"**System Time:** {datetime.now().strftime('%H:%M:%S')} | **Mode:** {st.session_state.role} |**MQTT**: {'🟢 Connected' if st.session_state.mqtt_connected else '🔴 Disconnected'}")
 
 m1, m2, m3, m4, m5 = st.columns(5)
@@ -249,24 +249,8 @@ if w1.button("Get Energy Efficiency Tips", type="secondary"):
     st.session_state.current_energy_tip = get_energy_tips()
 
 if st.session_state.current_energy_tip:
-    w2.success(st.session_state.current_energy_tip)
-st.divider()   
-
-#-----------------------------
-# Random Jokes API
-# -----------------------------   
-
-st.subheader("Random Jokes")
-v1, v2 = st.columns([1,2])
-
-if 'current_joke' not in st.session_state:
-    st.session_state.current_joke = None
-
-if v1.button("Get Joke", type="secondary"):
-    st.session_state.current_joke = get_random_jokes()
-
-if st.session_state.current_joke:
-    v2.success(st.session_state.current_joke)
+    w2.info(st.session_state.current_energy_tip)
+st.divider()     
     
 #-----------------------------
 #    LOGOUT & AUTO MODE
@@ -286,7 +270,14 @@ with col_sidebar:
 )
 
  if st.session_state.auto_mode:
-    update_simulation()
+    refresh_and_catch_up()
     time.sleep(1)
     st.rerun()
+
+
+      
+      
+      
+
+
 
