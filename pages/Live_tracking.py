@@ -2,15 +2,14 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import time
-from helper_function import get_weather_data,refresh_and_catch_up
+from helper_function import get_weather_data, update_simulation
+st.set_page_config(layout="wide")
 route_city = st.session_state.get("route_city")
 df = st.session_state.get("pod_data")
 
 if "logged_in" not in st.session_state or not st.session_state.logged_in:
     st.warning("⚠ Please login first.")
     st.stop()
-
-st.set_page_config(layout="wide")
 
 st.title("Hyperloop Live Tracking")
 
@@ -38,7 +37,7 @@ with col1:
 with col2:
     st.subheader("Live Telemetry")
     table_placeholder = st.empty()
-for _ in range(200):
+while st.session_state.logged_in:
 
     speeds = df["Speed (km/h)"].tolist()
     status = []
@@ -48,26 +47,26 @@ for _ in range(200):
         else:
             status.append("Stopped")
 
-    # Move only operational pods
-    for i in range(NUM_PODS):
-        if status[i] == "Operational":
-            latitudes[i] += np.random.uniform(-0.001, 0.001)
-            longitudes[i] += np.random.uniform(-0.001, 0.001)
+
+    operational_pods = np.array(status) == "Operational"
+    
+    latitudes[operational_pods] += np.random.uniform(-0.001, 0.001)
+    longitudes[operational_pods] += np.random.uniform(-0.001, 0.001)
 
     pod_data = pd.DataFrame({
         "latitude": latitudes,
         "longitude": longitudes
     })
 
-    refresh_and_catch_up()
+    update_simulation()
     if "distance" not in st.session_state:
          st.session_state.distance = [0 for _ in range(NUM_PODS)]
     for i in range(NUM_PODS):
-         st.session_state.distance[i] += float(speeds[i]/3600) * 0.05
+         st.session_state.distance[i] += float(speeds[i]/3600)*0.1
      
     status_df = pd.DataFrame({
         "Pod ID": [f"AV-{i+1}" for i in range(NUM_PODS)],
-        "Speed (km/h)": [df.iloc[i]["Speed (km/h)"] for i in range(NUM_PODS)],
+        "Speed (km/h)": [min(df.iloc[i]["Speed (km/h)"], st.session_state.speed_limit) for i in range(NUM_PODS)],
         "Status": status,
         'distance (km)': [st.session_state.distance[i] for i in range(NUM_PODS)]
     })
@@ -80,6 +79,4 @@ for _ in range(200):
         hide_index=True
     )    
 
-    
-
-    time.sleep(5)
+    time.sleep(0.1)
